@@ -1,60 +1,30 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, SuggestModal } from 'obsidian';
 
-interface MyPluginSettings {
-	mySetting: string;
+interface RequestPluginSettings {
+    urls: string[];
 }
 
-const DEFAULT_SETTINGS: MyPluginSettings = {
-	mySetting: 'default'
+const DEFAULT_SETTINGS: RequestPluginSettings = {
+	urls: []
 }
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class RequestPlugin extends Plugin {
+	settings: RequestPluginSettings;
 
 	async onload() {
-		console.log('loading plugin');
 
 		await this.loadSettings();
 
-		this.addRibbonIcon('dice', 'Sample Plugin', () => {
-			new Notice('This is a notice!');
-		});
-
-		this.addStatusBarItem().setText('Status Bar Text');
-
 		this.addCommand({
-			id: 'open-sample-modal',
-			name: 'Open Sample Modal',
-			// callback: () => {
-			// 	console.log('Simple Callback');
-			// },
-			checkCallback: (checking: boolean) => {
-				let leaf = this.app.workspace.activeLeaf;
-				if (leaf) {
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
+			id: 'get-request',
+			name: 'GET Reqiest',
+			editorCallback: (editor, view) => {
+				new RequestModal(this.app, this.settings.urls, editor.getSelection()).open();
 					return true;
-				}
-				return false;
 			}
 		});
 
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		this.registerCodeMirror((cm: CodeMirror.Editor) => {
-			console.log('codemirror', cm);
-		});
-
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			console.log('click', evt);
-		});
-
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-	}
-
-	onunload() {
-		console.log('unloading plugin');
+		this.addSettingTab(new RequestSettingTab(this.app, this));
 	}
 
 	async loadSettings() {
@@ -66,26 +36,34 @@ export default class MyPlugin extends Plugin {
 	}
 }
 
-class SampleModal extends Modal {
-	constructor(app: App) {
+class RequestModal extends SuggestModal<string> {
+    urls: string[];
+    selection: string;
+    
+	constructor(app: App, urls: string[], selection: string) {
 		super(app);
+		
+		this.urls = urls;
+		this.selection = selection;
 	}
-
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
-
-	onClose() {
-		let {contentEl} = this;
-		contentEl.empty();
-	}
+	
+    getSuggestions(query: string) {
+        return this.urls;
+    }
+    
+    renderSuggestion(url: string, el: HTMLElement){
+        el.innerHTML = url;
+    }
+    
+    async onChooseSuggestion(item: string, evt: MouseEvent | KeyboardEvent) {
+        fetch(item + this.selection).catch(err => );
+    }
 }
 
-class SampleSettingTab extends PluginSettingTab {
-	plugin: MyPlugin;
+class RequestSettingTab extends PluginSettingTab {
+	plugin: RequestPlugin;
 
-	constructor(app: App, plugin: MyPlugin) {
+	constructor(app: App, plugin: RequestPlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
 	}
@@ -95,17 +73,13 @@ class SampleSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		containerEl.createEl('h2', {text: 'Settings for my awesome plugin.'});
-
 		new Setting(containerEl)
-			.setName('Setting #1')
-			.setDesc('It\'s a secret')
+			.setName('URLs')
+			.setDesc('Targets for requests')
 			.addText(text => text
-				.setPlaceholder('Enter your secret')
-				.setValue('')
+				.setValue(this.plugin.settings.urls[0])
 				.onChange(async (value) => {
-					console.log('Secret: ' + value);
-					this.plugin.settings.mySetting = value;
+					this.plugin.settings.urls[0] = value;
 					await this.plugin.saveSettings();
 				}));
 	}
