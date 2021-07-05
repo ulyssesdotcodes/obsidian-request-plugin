@@ -1,0 +1,7 @@
+.request-urls {
+    flex-direction: column;
+}
+
+.request-urls .setting-item-control {
+    flex-direction: column;
+}

@@ -1,4 +1,5 @@
-import { App, Modal, Notice, Plugin, PluginSettingTab, Setting, SuggestModal } from 'obsidian';
+import { settings } from 'cluster';
+import { App, Editor, Modal, Notice, Plugin, PluginSettingTab, Setting, SuggestModal, TextComponent } from 'obsidian';
 
 interface RequestPluginSettings {
     urls: string[];
@@ -17,9 +18,9 @@ export default class RequestPlugin extends Plugin {
 
 		this.addCommand({
 			id: 'get-request',
-			name: 'GET Reqiest',
+			name: 'GET',
 			editorCallback: (editor, view) => {
-				new RequestModal(this.app, this.settings.urls, editor.getSelection()).open();
+				new RequestModal(this.app, this.settings.urls, editor).open();
 					return true;
 			}
 		});
@@ -38,13 +39,13 @@ export default class RequestPlugin extends Plugin {
 
 class RequestModal extends SuggestModal<string> {
     urls: string[];
-    selection: string;
+	editor: Editor;
     
-	constructor(app: App, urls: string[], selection: string) {
+	constructor(app: App, urls: string[], editor: Editor) {
 		super(app);
 		
 		this.urls = urls;
-		this.selection = selection;
+		this.editor = editor;
 	}
 	
     getSuggestions(query: string) {
@@ -56,7 +57,7 @@ class RequestModal extends SuggestModal<string> {
     }
     
     async onChooseSuggestion(item: string, evt: MouseEvent | KeyboardEvent) {
-        fetch(item + this.selection).catch(err => );
+        fetch(item + this.editor.getSelection()).catch(err => console.error(err));
     }
 }
 
@@ -73,13 +74,24 @@ class RequestSettingTab extends PluginSettingTab {
 
 		containerEl.empty();
 
-		new Setting(containerEl)
+		const setting = new Setting(containerEl)
 			.setName('URLs')
-			.setDesc('Targets for requests')
+			.setDesc('Targets for requests');
+
+		setting.setClass('request-urls')
+
+		this.plugin.settings.urls.forEach((val, idx) =>
+			setting.addText(text => text
+				.setValue(this.plugin.settings.urls[idx])
+				.onChange(async textVal => {
+					this.plugin.settings.urls[idx] = textVal;
+					await this.plugin.saveSettings();
+				})));
+
+		setting
 			.addText(text => text
-				.setValue(this.plugin.settings.urls[0])
 				.onChange(async (value) => {
-					this.plugin.settings.urls[0] = value;
+					this.plugin.settings.urls.push(value);
 					await this.plugin.saveSettings();
 				}));
 	}
