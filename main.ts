@@ -20,7 +20,7 @@ export default class RequestPlugin extends Plugin {
 			id: 'get-request',
 			name: 'GET',
 			editorCallback: (editor, view) => {
-				new RequestModal(this.app, this.settings.urls, editor).open();
+				new RequestModal(this.app, this.settings.urls.filter(u => u), editor).open();
 					return true;
 			}
 		});
@@ -57,7 +57,12 @@ class RequestModal extends SuggestModal<string> {
     }
     
     async onChooseSuggestion(item: string, evt: MouseEvent | KeyboardEvent) {
-        fetch(item + this.editor.getSelection()).catch(err => console.error(err));
+		this.editor.replaceSelection(
+			await fetch(item + this.editor.getSelection())
+				.then(res => res.json())
+				.then(res => Array.isArray(res) ? res.join('\n') : res)
+				.catch(err => console.error(err))
+		);
     }
 }
 
@@ -80,6 +85,9 @@ class RequestSettingTab extends PluginSettingTab {
 
 		setting.setClass('request-urls')
 
+		this.plugin.settings.urls = this.plugin.settings.urls.filter(t => t);
+		this.plugin.saveSettings();
+
 		this.plugin.settings.urls.forEach((val, idx) =>
 			setting.addText(text => text
 				.setValue(this.plugin.settings.urls[idx])
@@ -88,11 +96,18 @@ class RequestSettingTab extends PluginSettingTab {
 					await this.plugin.saveSettings();
 				})));
 
-		setting
-			.addText(text => text
-				.onChange(async (value) => {
-					this.plugin.settings.urls.push(value);
-					await this.plugin.saveSettings();
-				}));
+		const addLine = () => {
+			const idx = this.plugin.settings.urls.length;
+			setting
+				.addText(text => text
+					.onChange(async (value) => {
+						this.plugin.settings.urls[idx] = value;
+						await this.plugin.saveSettings();
+					}));
+		}
+
+		addLine();
+		setting.addButton(btn => btn.setClass('add').setButtonText('add').onClick(() => addLine()))
+
 	}
 }
