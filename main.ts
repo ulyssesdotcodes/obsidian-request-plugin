@@ -1,4 +1,3 @@
-import { settings } from 'cluster';
 import { App, Editor, Modal, Notice, Plugin, PluginSettingTab, Setting, SuggestModal, TextComponent } from 'obsidian';
 
 interface RequestPluginSettings {
