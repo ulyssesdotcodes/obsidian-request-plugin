@@ -38,7 +38,6 @@ export default class RequestPlugin extends Plugin {
 
 class RequestModal extends SuggestModal<string> {
     urls: string[];
-	selection: string;
 	editor: Editor;
     
 	constructor(app: App, urls: string[], editor: Editor) {
@@ -46,7 +45,6 @@ class RequestModal extends SuggestModal<string> {
 		
 		this.urls = urls;
 		this.editor = editor;
-		this.selection = editor.getSelection().toString();
 	}
 	
     getSuggestions(query: string) {
@@ -58,12 +56,12 @@ class RequestModal extends SuggestModal<string> {
     }
     
     onChooseSuggestion(item: string, evt: MouseEvent | KeyboardEvent) {
-        const url = `${item}${this.selection}`;
-		this.editor.replaceSelection(url)
+        const url = `${item}${this.editor.getSelection().toString()}`;
 		fetch(url)
-				.then(res => Array.isArray(res) ? res.join('\n') : res)
-				.catch(err => err.message)
-				.then(res => this.editor.replaceSelection(res));
+				.then(res => res.json())
+				.then(res => Array.isArray(res) ? res.join('\n') : JSON.stringify(res))
+				.then(res => this.editor.replaceSelection(res))
+				.catch(err => err.message);
     }
 }
 
