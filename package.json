@@ -1,6 +1,6 @@
 {
   "name": "request-obsidian",
-  "version": "0.1.1",
+  "version": "0.1.4",
   "description": "obsidian plugin for making requests",
   "main": "main.js",
   "scripts": {
